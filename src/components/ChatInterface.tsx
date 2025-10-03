@@ -13,9 +13,10 @@ interface Message {
 interface ChatInterfaceProps {
   onEditRequest: (message: string) => void;
   messages: Message[];
+  isProcessing?: boolean;
 }
 
-export const ChatInterface = ({ onEditRequest, messages }: ChatInterfaceProps) => {
+export const ChatInterface = ({ onEditRequest, messages, isProcessing }: ChatInterfaceProps) => {
   const [input, setInput] = useState('');
 
   const handleSend = () => {
@@ -43,30 +44,44 @@ export const ChatInterface = ({ onEditRequest, messages }: ChatInterfaceProps) =
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-12">
               <p className="mb-2">Upload a photo and describe your edit</p>
-              <p className="text-sm">
+              <p className="text-sm mb-4">
                 Try: "Remove background" or "Make it black and white"
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Powered by Gemini 2.5 Flash Image Preview
               </p>
             </div>
           )}
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+            <div key={idx}>
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  msg.role === 'user'
-                    ? 'bg-gradient-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground'
-                }`}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                {msg.json && (
-                  <pre className="mt-2 p-2 bg-background/20 rounded text-xs overflow-x-auto">
-                    {JSON.stringify(msg.json, null, 2)}
-                  </pre>
-                )}
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-primary text-primary-foreground'
+                      : 'bg-secondary text-secondary-foreground'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.json && (
+                    <pre className="mt-2 p-2 bg-background/20 rounded text-xs overflow-x-auto">
+                      {JSON.stringify(msg.json, null, 2)}
+                    </pre>
+                  )}
+                </div>
               </div>
+              {isProcessing && idx === messages.length - 1 && msg.role === 'user' && (
+                <div className="flex justify-start mt-2">
+                  <div className="max-w-[80%] rounded-lg p-3 bg-secondary text-secondary-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                      <p className="text-sm">Editing image...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -84,7 +99,7 @@ export const ChatInterface = ({ onEditRequest, messages }: ChatInterfaceProps) =
           />
           <Button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isProcessing}
             size="icon"
             className="shrink-0 bg-gradient-primary hover:opacity-90 transition-opacity"
           >

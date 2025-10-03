@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { ImageUpload } from '@/components/ImageUpload';
 import { ChatInterface } from '@/components/ChatInterface';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -9,13 +11,17 @@ interface Message {
 }
 
 const Index = () => {
+  const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [editedImage, setEditedImage] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleImageUpload = (file: File, preview: string) => {
     setCurrentFile(file);
     setUploadedImage(preview);
+    setEditedImage(null);
     setMessages([]);
   };
 
@@ -101,20 +107,69 @@ const Index = () => {
     return { edit_tasks: tasks };
   };
 
-  const handleEditRequest = (message: string) => {
+  const handleEditRequest = async (message: string) => {
+    if (!uploadedImage) {
+      toast({
+        title: "No image uploaded",
+        description: "Please upload an image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const userMsg: Message = { role: 'user', content: message };
     setMessages((prev) => [...prev, userMsg]);
+    setIsProcessing(true);
 
-    const jsonOutput = parseEditRequest(message);
-    const assistantMsg: Message = {
-      role: 'assistant',
-      content: `I've generated the editing instructions for: "${message}"`,
-      json: jsonOutput,
-    };
+    try {
+      // Call the edge function with the image and instruction
+      const { data, error } = await supabase.functions.invoke('edit-image', {
+        body: {
+          imageData: uploadedImage,
+          instruction: message
+        }
+      });
 
-    setTimeout(() => {
-      setMessages((prev) => [...prev, assistantMsg]);
-    }, 500);
+      if (error) throw error;
+
+      if (data?.editedImage) {
+        setEditedImage(data.editedImage);
+        
+        const assistantMsg: Message = {
+          role: 'assistant',
+          content: `✓ Image edited: "${message}"`,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+
+        toast({
+          title: "Image edited successfully",
+          description: "Your edited image is ready!",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error editing image:', error);
+      
+      let errorMessage = 'Failed to edit image';
+      if (error.message?.includes('Rate limit')) {
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (error.message?.includes('Payment required')) {
+        errorMessage = 'Please add credits to your Lovable AI workspace.';
+      }
+
+      const errorMsg: Message = {
+        role: 'assistant',
+        content: `✗ Error: ${errorMessage}`,
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -138,7 +193,7 @@ const Index = () => {
           <div className="bg-card/30 backdrop-blur-sm rounded-lg border border-border p-4 shadow-card">
             <ImageUpload
               onImageUpload={handleImageUpload}
-              uploadedImage={uploadedImage}
+              uploadedImage={editedImage || uploadedImage}
             />
           </div>
 
@@ -147,6 +202,7 @@ const Index = () => {
             <ChatInterface
               onEditRequest={handleEditRequest}
               messages={messages}
+              isProcessing={isProcessing}
             />
           </div>
         </div>
