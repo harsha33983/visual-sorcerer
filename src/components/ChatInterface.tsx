@@ -1,0 +1,97 @@
+import { useState } from 'react';
+import { Send, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  json?: any;
+}
+
+interface ChatInterfaceProps {
+  onEditRequest: (message: string) => void;
+  messages: Message[];
+}
+
+export const ChatInterface = ({ onEditRequest, messages }: ChatInterfaceProps) => {
+  const [input, setInput] = useState('');
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    onEditRequest(input);
+    setInput('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card/50 backdrop-blur-sm rounded-lg border border-border">
+      <div className="p-4 border-b border-border flex items-center gap-2">
+        <Sparkles className="w-5 h-5 text-primary" />
+        <h2 className="font-semibold text-foreground">AI Photo Editor</h2>
+      </div>
+
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground py-12">
+              <p className="mb-2">Upload a photo and describe your edit</p>
+              <p className="text-sm">
+                Try: "Remove background" or "Make it black and white"
+              </p>
+            </div>
+          )}
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  msg.role === 'user'
+                    ? 'bg-gradient-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                {msg.json && (
+                  <pre className="mt-2 p-2 bg-background/20 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(msg.json, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe your edit (e.g., make background white, enhance resolution...)"
+            className="resize-none bg-background/50 border-input"
+            rows={2}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            size="icon"
+            className="shrink-0 bg-gradient-primary hover:opacity-90 transition-opacity"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
