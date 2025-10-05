@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Session } from '@supabase/supabase-js';
 import { ImageUpload } from '@/components/ImageUpload';
 import { ChatInterface } from '@/components/ChatInterface';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { LogOut } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,11 +16,39 @@ interface Message {
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+    });
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
+
+  if (!session) {
+    return null;
+  }
 
   const handleImageUpload = (file: File, preview: string) => {
     setCurrentFile(file);
@@ -176,13 +208,24 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card/30 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            AI Photo Editor
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Upload, edit, and transform your photos with AI
-          </p>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              AI Photo Editor
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Upload, edit, and transform your photos with AI
+            </p>
+          </div>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
         </div>
       </header>
 
