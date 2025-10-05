@@ -194,6 +194,7 @@ const Index = () => {
             <ImageUpload
               onImageUpload={handleImageUpload}
               uploadedImage={editedImage || uploadedImage}
+              isEdited={!!editedImage}
             />
           </div>
 

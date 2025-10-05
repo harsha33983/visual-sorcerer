@@ -1,14 +1,32 @@
 import { useCallback } from 'react';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { Upload, Image as ImageIcon, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface ImageUploadProps {
   onImageUpload: (file: File, preview: string) => void;
   uploadedImage: string | null;
+  isEdited?: boolean;
 }
 
-export const ImageUpload = ({ onImageUpload, uploadedImage }: ImageUploadProps) => {
+export const ImageUpload = ({ onImageUpload, uploadedImage, isEdited }: ImageUploadProps) => {
   const { toast } = useToast();
+
+  const handleDownload = () => {
+    if (!uploadedImage) return;
+    
+    const link = document.createElement('a');
+    link.href = uploadedImage;
+    link.download = `edited-photo-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Download started",
+      description: "Your edited photo is being downloaded!",
+    });
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -92,12 +110,23 @@ export const ImageUpload = ({ onImageUpload, uploadedImage }: ImageUploadProps) 
               alt="Uploaded preview"
               className="max-w-full max-h-[600px] object-contain"
             />
-            <button
-              onClick={() => document.getElementById('file-input')?.click()}
-              className="absolute top-4 right-4 p-3 bg-secondary/90 backdrop-blur-sm rounded-lg hover:bg-secondary transition-colors"
-            >
-              <ImageIcon className="w-5 h-5 text-secondary-foreground" />
-            </button>
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                onClick={() => document.getElementById('file-input')?.click()}
+                className="p-3 bg-secondary/90 backdrop-blur-sm rounded-lg hover:bg-secondary transition-colors"
+              >
+                <ImageIcon className="w-5 h-5 text-secondary-foreground" />
+              </button>
+              {isEdited && (
+                <Button
+                  onClick={handleDownload}
+                  className="p-3 bg-gradient-primary hover:opacity-90"
+                  size="icon"
+                >
+                  <Download className="w-5 h-5" />
+                </Button>
+              )}
+            </div>
           </div>
           <input
             id="file-input"
