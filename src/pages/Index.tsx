@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { ImageUpload } from '@/components/ImageUpload';
+import { ImageDisplay } from '@/components/ImageDisplay';
 import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { Button } from '@/components/ui/button';
@@ -278,23 +279,52 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* User Profile - Hidden on mobile, shown on desktop */}
-          <div className="hidden lg:block lg:col-span-1">
+          <div className="hidden lg:block lg:col-span-3">
             <UserProfile />
           </div>
 
-          {/* Image Upload/Preview */}
-          <div className="lg:col-span-1 bg-card/30 backdrop-blur-sm rounded-lg border border-border p-3 sm:p-4 shadow-card">
-            <ImageUpload
-              onImageUpload={handleImageUpload}
-              uploadedImage={editedImage || uploadedImage}
-              isEdited={!!editedImage}
+          {/* Image Upload */}
+          <div className="lg:col-span-3">
+            <div className="bg-card/30 backdrop-blur-sm rounded-lg border border-border p-3 sm:p-4 shadow-card">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground mb-3">Upload Image</h3>
+              <ImageUpload
+                onImageUpload={handleImageUpload}
+                uploadedImage={uploadedImage}
+                isEdited={false}
+              />
+            </div>
+          </div>
+
+          {/* Original & Edited Images Side by Side */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Original Image */}
+            <ImageDisplay
+              image={uploadedImage}
+              title="Original Image"
+              showDownload={false}
+              emptyMessage="Upload an image to get started"
+            />
+
+            {/* Edited Image */}
+            <ImageDisplay
+              image={editedImage}
+              title="Edited Image"
+              showDownload={!!editedImage}
+              emptyMessage="Edited image will appear here"
             />
           </div>
 
-          {/* Chat Interface */}
-          <div className="lg:col-span-1 h-[500px] sm:h-[600px] lg:h-auto">
+          {/* User Profile - Shown on mobile/tablet at bottom */}
+          <div className="lg:hidden">
+            <UserProfile />
+          </div>
+        </div>
+
+        {/* Chat Interface - Full Width Below */}
+        <div className="mt-4 sm:mt-6">
+          <div className="max-w-4xl mx-auto h-[400px] sm:h-[500px]">
             <ChatInterface
               onEditRequest={handleEditRequest}
               messages={messages}
@@ -302,11 +332,6 @@ const Index = () => {
               initialPrompt={selectedPrompt}
               onPromptApplied={() => setSelectedPrompt(null)}
             />
-          </div>
-
-          {/* User Profile - Shown on mobile/tablet at bottom */}
-          <div className="lg:hidden">
-            <UserProfile />
           </div>
         </div>
       </main>
