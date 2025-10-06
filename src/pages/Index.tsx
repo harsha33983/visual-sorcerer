@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { ImageUpload } from '@/components/ImageUpload';
 import { ChatInterface } from '@/components/ChatInterface';
+import { UserProfile } from '@/components/UserProfile';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut } from 'lucide-react';
@@ -149,6 +150,15 @@ const Index = () => {
       return;
     }
 
+    if (!session?.user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in to edit images",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const userMsg: Message = { role: 'user', content: message };
     setMessages((prev) => [...prev, userMsg]);
     setIsProcessing(true);
@@ -167,6 +177,14 @@ const Index = () => {
       if (data?.editedImage) {
         setEditedImage(data.editedImage);
         
+        // Save to history
+        await supabase.from('edit_history').insert({
+          user_id: session.user.id,
+          prompt: message,
+          image_url: uploadedImage,
+          edited_image_url: data.editedImage
+        });
+
         const assistantMsg: Message = {
           role: 'assistant',
           content: `✓ Image edited: "${message}"`,
@@ -177,6 +195,9 @@ const Index = () => {
           title: "Image edited successfully",
           description: "Your edited image is ready!",
         });
+
+        // Trigger refresh of history
+        window.dispatchEvent(new Event('edit-history-updated'));
       }
     } catch (error: any) {
       console.error('Error editing image:', error);
@@ -231,9 +252,14 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-2 gap-6 h-full">
-          {/* Left Panel - Image Upload/Preview */}
-          <div className="bg-card/30 backdrop-blur-sm rounded-lg border border-border p-4 shadow-card">
+        <div className="grid lg:grid-cols-3 gap-6 h-full">
+          {/* Left Panel - User Profile */}
+          <div className="lg:col-span-1">
+            <UserProfile />
+          </div>
+
+          {/* Middle Panel - Image Upload/Preview */}
+          <div className="lg:col-span-1 bg-card/30 backdrop-blur-sm rounded-lg border border-border p-4 shadow-card">
             <ImageUpload
               onImageUpload={handleImageUpload}
               uploadedImage={editedImage || uploadedImage}
@@ -242,7 +268,7 @@ const Index = () => {
           </div>
 
           {/* Right Panel - Chat Interface */}
-          <div className="h-[600px] lg:h-auto">
+          <div className="lg:col-span-1 h-[600px] lg:h-auto">
             <ChatInterface
               onEditRequest={handleEditRequest}
               messages={messages}

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      edit_history: {
+        Row: {
+          created_at: string
+          edited_image_url: string | null
+          id: string
+          image_url: string | null
+          prompt: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          edited_image_url?: string | null
+          id?: string
+          image_url?: string | null
+          prompt: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          edited_image_url?: string | null
+          id?: string
+          image_url?: string | null
+          prompt?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
