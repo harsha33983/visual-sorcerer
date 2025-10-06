@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as React from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +20,18 @@ interface ChatInterfaceProps {
 export const ChatInterface = ({ onEditRequest, messages, isProcessing }: ChatInterfaceProps) => {
   const [input, setInput] = useState('');
 
+  // Listen for prompts from the prompts page
+  React.useEffect(() => {
+    const handleApplyPrompt = (e: CustomEvent) => {
+      setInput(e.detail);
+    };
+
+    window.addEventListener('applyPrompt', handleApplyPrompt as EventListener);
+    return () => {
+      window.removeEventListener('applyPrompt', handleApplyPrompt as EventListener);
+    };
+  }, []);
+
   const handleSend = () => {
     if (!input.trim()) return;
     onEditRequest(input);
@@ -34,17 +47,17 @@ export const ChatInterface = ({ onEditRequest, messages, isProcessing }: ChatInt
 
   return (
     <div className="flex flex-col h-full bg-card/50 backdrop-blur-sm rounded-lg border border-border">
-      <div className="p-4 border-b border-border flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-primary" />
-        <h2 className="font-semibold text-foreground">AI Photo Editor</h2>
+      <div className="p-3 sm:p-4 border-b border-border flex items-center gap-2">
+        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+        <h2 className="font-semibold text-sm sm:text-base text-foreground">AI Photo Editor</h2>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-3 sm:p-4">
+        <div className="space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-muted-foreground py-12">
-              <p className="mb-2">Upload a photo and describe your edit</p>
-              <p className="text-sm mb-4">
+            <div className="text-center text-muted-foreground py-8 sm:py-12">
+              <p className="mb-2 text-sm sm:text-base">Upload a photo and describe your edit</p>
+              <p className="text-xs sm:text-sm mb-3 sm:mb-4">
                 Try: "Remove background" or "Make it black and white"
               </p>
               <p className="text-xs text-muted-foreground/70">
@@ -87,23 +100,23 @@ export const ChatInterface = ({ onEditRequest, messages, isProcessing }: ChatInt
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-3 sm:p-4 border-t border-border">
         <div className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Describe your edit (e.g., make background white, enhance resolution...)"
-            className="resize-none bg-background/50 border-input"
+            className="resize-none bg-background/50 border-input text-sm"
             rows={2}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isProcessing}
             size="icon"
-            className="shrink-0 bg-gradient-primary hover:opacity-90 transition-opacity"
+            className="shrink-0 bg-gradient-primary hover:opacity-90 transition-opacity h-auto w-10 sm:w-12"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>

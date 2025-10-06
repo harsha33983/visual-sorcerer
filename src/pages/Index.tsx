@@ -7,7 +7,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut } from 'lucide-react';
+import { LogOut, BookOpen } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -41,6 +41,17 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    // Check for selected prompt from prompts page
+    const selectedPrompt = localStorage.getItem('selectedPrompt');
+    if (selectedPrompt) {
+      // Add it to the chat input
+      const event = new CustomEvent('applyPrompt', { detail: selectedPrompt });
+      window.dispatchEvent(event);
+      localStorage.removeItem('selectedPrompt');
+    }
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -228,38 +239,49 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-card/30 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               AI Photo Editor
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
               Upload, edit, and transform your photos with AI
             </p>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => navigate('/prompts')}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Prompts</span>
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-3 gap-6 h-full">
-          {/* Left Panel - User Profile */}
-          <div className="lg:col-span-1">
+      <main className="flex-1 container mx-auto px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* User Profile - Hidden on mobile, shown on desktop */}
+          <div className="hidden lg:block lg:col-span-1">
             <UserProfile />
           </div>
 
-          {/* Middle Panel - Image Upload/Preview */}
-          <div className="lg:col-span-1 bg-card/30 backdrop-blur-sm rounded-lg border border-border p-4 shadow-card">
+          {/* Image Upload/Preview */}
+          <div className="lg:col-span-1 bg-card/30 backdrop-blur-sm rounded-lg border border-border p-3 sm:p-4 shadow-card">
             <ImageUpload
               onImageUpload={handleImageUpload}
               uploadedImage={editedImage || uploadedImage}
@@ -267,13 +289,18 @@ const Index = () => {
             />
           </div>
 
-          {/* Right Panel - Chat Interface */}
-          <div className="lg:col-span-1 h-[600px] lg:h-auto">
+          {/* Chat Interface */}
+          <div className="lg:col-span-1 h-[500px] sm:h-[600px] lg:h-auto">
             <ChatInterface
               onEditRequest={handleEditRequest}
               messages={messages}
               isProcessing={isProcessing}
             />
+          </div>
+
+          {/* User Profile - Shown on mobile/tablet at bottom */}
+          <div className="lg:hidden">
+            <UserProfile />
           </div>
         </div>
       </main>
