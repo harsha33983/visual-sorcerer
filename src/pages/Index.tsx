@@ -24,6 +24,7 @@ const Index = () => {
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -44,14 +45,17 @@ const Index = () => {
 
   useEffect(() => {
     // Check for selected prompt from prompts page
-    const selectedPrompt = localStorage.getItem('selectedPrompt');
-    if (selectedPrompt) {
-      // Add it to the chat input
-      const event = new CustomEvent('applyPrompt', { detail: selectedPrompt });
-      window.dispatchEvent(event);
+    const storedPrompt = localStorage.getItem('selectedPrompt');
+    if (storedPrompt) {
+      setSelectedPrompt(storedPrompt);
       localStorage.removeItem('selectedPrompt');
+      
+      toast({
+        title: "Prompt loaded!",
+        description: "The prompt has been added to the editor",
+      });
     }
-  }, []);
+  }, [toast]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -295,6 +299,8 @@ const Index = () => {
               onEditRequest={handleEditRequest}
               messages={messages}
               isProcessing={isProcessing}
+              initialPrompt={selectedPrompt}
+              onPromptApplied={() => setSelectedPrompt(null)}
             />
           </div>
 

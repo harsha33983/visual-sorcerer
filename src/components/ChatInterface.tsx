@@ -15,22 +15,26 @@ interface ChatInterfaceProps {
   onEditRequest: (message: string) => void;
   messages: Message[];
   isProcessing?: boolean;
+  initialPrompt?: string | null;
+  onPromptApplied?: () => void;
 }
 
-export const ChatInterface = ({ onEditRequest, messages, isProcessing }: ChatInterfaceProps) => {
+export const ChatInterface = ({ 
+  onEditRequest, 
+  messages, 
+  isProcessing,
+  initialPrompt,
+  onPromptApplied 
+}: ChatInterfaceProps) => {
   const [input, setInput] = useState('');
 
-  // Listen for prompts from the prompts page
+  // Apply initial prompt when it changes
   React.useEffect(() => {
-    const handleApplyPrompt = (e: CustomEvent) => {
-      setInput(e.detail);
-    };
-
-    window.addEventListener('applyPrompt', handleApplyPrompt as EventListener);
-    return () => {
-      window.removeEventListener('applyPrompt', handleApplyPrompt as EventListener);
-    };
-  }, []);
+    if (initialPrompt) {
+      setInput(initialPrompt);
+      onPromptApplied?.();
+    }
+  }, [initialPrompt, onPromptApplied]);
 
   const handleSend = () => {
     if (!input.trim()) return;

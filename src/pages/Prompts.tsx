@@ -101,10 +101,6 @@ const Prompts = () => {
 
   const handlePromptClick = (prompt: string) => {
     localStorage.setItem('selectedPrompt', prompt);
-    toast({
-      title: "Prompt selected!",
-      description: "Go to the editor to use this prompt",
-    });
     navigate('/');
   };
 
