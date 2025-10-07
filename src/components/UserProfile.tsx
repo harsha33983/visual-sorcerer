@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { User, Clock, Trash2 } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface Profile {
   full_name: string;
   email: string;
+  avatar_url: string | null;
 }
 
 interface EditHistory {
@@ -45,7 +46,7 @@ export const UserProfile = () => {
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name, email, avatar_url')
       .eq('user_id', user.id)
       .single();
 
@@ -121,6 +122,7 @@ export const UserProfile = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12 bg-gradient-primary">
+            <AvatarImage src={profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-gradient-primary text-primary-foreground">
               {profile?.full_name ? getInitials(profile.full_name) : <User className="w-6 h-6" />}
             </AvatarFallback>
