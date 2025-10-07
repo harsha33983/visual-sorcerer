@@ -8,7 +8,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, BookOpen } from 'lucide-react';
+import { LogOut, BookOpen, User, History, Images } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -54,6 +54,21 @@ const Index = () => {
       toast({
         title: "Prompt loaded!",
         description: "The prompt has been added to the editor",
+      });
+    }
+
+    // Check for history item to load
+    const historyItem = localStorage.getItem('historyItem');
+    if (historyItem) {
+      const item = JSON.parse(historyItem);
+      setUploadedImage(item.imageUrl);
+      setEditedImage(item.editedImageUrl);
+      setSelectedPrompt(item.prompt);
+      localStorage.removeItem('historyItem');
+      
+      toast({
+        title: "History loaded!",
+        description: "Previous edit loaded in the editor",
       });
     }
   }, [toast]);
@@ -254,7 +269,34 @@ const Index = () => {
               Upload, edit, and transform your photos with AI
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button
+              onClick={() => navigate('/profile')}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden md:inline">Profile</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/history')}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden md:inline">History</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/storage')}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Images className="w-4 h-4" />
+              <span className="hidden md:inline">Gallery</span>
+            </Button>
             <Button
               onClick={() => navigate('/prompts')}
               variant="outline"
@@ -262,7 +304,7 @@ const Index = () => {
               className="gap-2"
             >
               <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Prompts</span>
+              <span className="hidden md:inline">Prompts</span>
             </Button>
             <Button
               onClick={handleLogout}
@@ -271,7 +313,7 @@ const Index = () => {
               className="gap-2"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden md:inline">Logout</span>
             </Button>
           </div>
         </div>
