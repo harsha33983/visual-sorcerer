@@ -192,7 +192,7 @@ const Prompts = () => {
       {/* Footer */}
       <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-4 mt-8">
         <div className="container mx-auto px-4 text-center text-xs sm:text-sm text-muted-foreground">
-          <p>Click a prompt to select it • Upload an image in the editor to apply</p>
+          <p>Developed by Harshavardhan • Powered by AI</p>
         </div>
       </footer>
     </div>

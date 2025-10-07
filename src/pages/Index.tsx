@@ -381,7 +381,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-4">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Powered by AI • Transform your photos with natural language</p>
+          <p>Developed by Harshavardhan • Powered by AI</p>
         </div>
       </footer>
     </div>
