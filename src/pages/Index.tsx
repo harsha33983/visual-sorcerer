@@ -6,6 +6,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { ImageDisplay } from '@/components/ImageDisplay';
 import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
+import { WelcomeAnimation } from '@/components/WelcomeAnimation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, BookOpen, User, History, Images } from 'lucide-react';
@@ -26,6 +27,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     // Set up auth state listener
@@ -257,7 +259,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <>
+      {showWelcome && <WelcomeAnimation onComplete={() => setShowWelcome(false)} />}
+      <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card/30 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
@@ -385,6 +389,7 @@ const Index = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 
