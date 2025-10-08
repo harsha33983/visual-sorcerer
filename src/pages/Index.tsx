@@ -7,6 +7,7 @@ import { ImageDisplay } from '@/components/ImageDisplay';
 import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { WelcomeAnimation } from '@/components/WelcomeAnimation';
+import { ProcessingLoader } from '@/components/ProcessingLoader';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { LogOut, BookOpen, User, History, Images } from 'lucide-react';
@@ -261,6 +262,7 @@ const Index = () => {
   return (
     <>
       {showWelcome && <WelcomeAnimation onComplete={() => setShowWelcome(false)} />}
+      <ProcessingLoader isProcessing={isProcessing} />
       <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-card/30 backdrop-blur-sm sticky top-0 z-10">
