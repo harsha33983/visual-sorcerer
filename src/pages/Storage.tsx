@@ -71,26 +71,6 @@ const Storage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            onClick={() => navigate('/')}
-            variant="ghost"
-            size="icon"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              My Gallery
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              All your edited images
-            </p>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-6">
         {images.length === 0 ? (
           <Card className="bg-card/80 backdrop-blur-sm border-border p-12 text-center">

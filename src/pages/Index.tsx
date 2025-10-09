@@ -8,10 +8,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { WelcomeAnimation } from '@/components/WelcomeAnimation';
 import { ProcessingLoader } from '@/components/ProcessingLoader';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, BookOpen, User, History, Images } from 'lucide-react';
-import logo from '@/assets/logo.png';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -76,11 +73,6 @@ const Index = () => {
       });
     }
   }, [toast]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
-  };
 
   if (!session) {
     return null;
@@ -291,12 +283,12 @@ const Index = () => {
         setUploadedImage(data.generatedImage);
         setEditedImage(null);
         
-        // Save to history
+        // Save to history with generated image in BOTH fields so it appears in gallery
         await supabase.from('edit_history').insert({
           user_id: session.user.id,
           prompt: message,
           image_url: data.generatedImage,
-          edited_image_url: null
+          edited_image_url: data.generatedImage  // Store in edited field too for gallery
         });
 
         const assistantMsg: Message = {
@@ -341,70 +333,6 @@ const Index = () => {
       {showWelcome && <WelcomeAnimation onComplete={() => setShowWelcome(false)} />}
       <ProcessingLoader isProcessing={isProcessing} />
       <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-card/30 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Ethereal Aura Logo" className="w-10 h-10 sm:w-12 sm:h-12" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                AI Photo Editor
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                Upload, edit, and transform your photos with AI
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              onClick={() => navigate('/profile')}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <User className="w-4 h-4" />
-              <span className="hidden md:inline">Profile</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/history')}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <History className="w-4 h-4" />
-              <span className="hidden md:inline">History</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/storage')}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Images className="w-4 h-4" />
-              <span className="hidden md:inline">Gallery</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/prompts')}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden md:inline">Prompts</span>
-            </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden md:inline">Logout</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
@@ -431,7 +359,7 @@ const Index = () => {
             <ImageDisplay
               image={uploadedImage}
               title="Original Image"
-              showDownload={false}
+              showDownload={!!uploadedImage}
               emptyMessage="Upload an image to get started"
             />
 
