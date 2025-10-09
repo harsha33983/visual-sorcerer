@@ -89,7 +89,7 @@ const Index = () => {
   const handleImageUpload = (file: File, preview: string) => {
     setCurrentFile(file);
     setUploadedImage(preview);
-    setEditedImage(null);
+    // Don't clear editedImage - allow editing edited images
     setMessages([]);
   };
 
@@ -176,9 +176,12 @@ const Index = () => {
   };
 
   const handleEditRequest = async (message: string) => {
-    if (!uploadedImage) {
+    // Use edited image if available, otherwise original
+    const sourceImage = editedImage || uploadedImage;
+    
+    if (!sourceImage) {
       toast({
-        title: "No image uploaded",
+        title: "No image available",
         description: "Please upload an image first",
         variant: "destructive"
       });
@@ -199,10 +202,10 @@ const Index = () => {
     setIsProcessing(true);
 
     try {
-      // Call the edge function with the image and instruction
+      // Call the edge function with the source image and instruction
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: {
-          imageData: uploadedImage,
+          imageData: sourceImage,
           instruction: message
         }
       });
@@ -216,7 +219,7 @@ const Index = () => {
         await supabase.from('edit_history').insert({
           user_id: session.user.id,
           prompt: message,
-          image_url: uploadedImage,
+          image_url: uploadedImage || sourceImage,
           edited_image_url: data.editedImage
         });
 
@@ -238,6 +241,79 @@ const Index = () => {
       console.error('Error editing image:', error);
       
       let errorMessage = 'Failed to edit image';
+      if (error.message?.includes('Rate limit')) {
+        errorMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (error.message?.includes('Payment required')) {
+        errorMessage = 'Please add credits to your Lovable AI workspace.';
+      }
+
+      const errorMsg: Message = {
+        role: 'assistant',
+        content: `✗ Error: ${errorMessage}`,
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGenerateImage = async (message: string) => {
+    if (!session?.user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in to generate images",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const userMsg: Message = { role: 'user', content: message };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsProcessing(true);
+
+    try {
+      // Call the edge function to generate image
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          prompt: message
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.generatedImage) {
+        setUploadedImage(data.generatedImage);
+        setEditedImage(null);
+        
+        // Save to history
+        await supabase.from('edit_history').insert({
+          user_id: session.user.id,
+          prompt: message,
+          image_url: data.generatedImage,
+          edited_image_url: null
+        });
+
+        const assistantMsg: Message = {
+          role: 'assistant',
+          content: `✓ Image generated: "${message}"`,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+
+        toast({
+          title: "Image generated successfully",
+          description: "Your generated image is ready!",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      
+      let errorMessage = 'Failed to generate image';
       if (error.message?.includes('Rate limit')) {
         errorMessage = 'Rate limit exceeded. Please try again later.';
       } else if (error.message?.includes('Payment required')) {
@@ -379,6 +455,7 @@ const Index = () => {
           <div className="max-w-4xl mx-auto h-[400px] sm:h-[500px]">
             <ChatInterface
               onEditRequest={handleEditRequest}
+              onGenerateRequest={handleGenerateImage}
               messages={messages}
               isProcessing={isProcessing}
               initialPrompt={selectedPrompt}

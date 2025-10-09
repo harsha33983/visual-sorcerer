@@ -13,6 +13,7 @@ interface Message {
 
 interface ChatInterfaceProps {
   onEditRequest: (message: string) => void;
+  onGenerateRequest?: (message: string) => void;
   messages: Message[];
   isProcessing?: boolean;
   initialPrompt?: string | null;
@@ -20,13 +21,15 @@ interface ChatInterfaceProps {
 }
 
 export const ChatInterface = ({ 
-  onEditRequest, 
+  onEditRequest,
+  onGenerateRequest, 
   messages, 
   isProcessing,
   initialPrompt,
   onPromptApplied 
 }: ChatInterfaceProps) => {
   const [input, setInput] = useState('');
+  const [mode, setMode] = useState<'edit' | 'generate'>('edit');
 
   // Apply initial prompt when it changes
   React.useEffect(() => {
@@ -38,7 +41,11 @@ export const ChatInterface = ({
 
   const handleSend = () => {
     if (!input.trim()) return;
-    onEditRequest(input);
+    if (mode === 'generate' && onGenerateRequest) {
+      onGenerateRequest(input);
+    } else {
+      onEditRequest(input);
+    }
     setInput('');
   };
 
@@ -60,9 +67,13 @@ export const ChatInterface = ({
         <div className="space-y-3 sm:space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8 sm:py-12">
-              <p className="mb-2 text-sm sm:text-base">Upload a photo and describe your edit</p>
+              <p className="mb-2 text-sm sm:text-base">
+                {mode === 'generate' ? 'Describe the image you want to generate' : 'Upload a photo and describe your edit'}
+              </p>
               <p className="text-xs sm:text-sm mb-3 sm:mb-4">
-                Try: "Remove background" or "Make it black and white"
+                {mode === 'generate' 
+                  ? 'Try: "A sunset over mountains" or "A cyberpunk city at night"'
+                  : 'Try: "Remove background" or "Make it black and white"'}
               </p>
               <p className="text-xs text-muted-foreground/70">
                 Powered by Gemini 2.5 Flash Image Preview
@@ -104,13 +115,35 @@ export const ChatInterface = ({
         </div>
       </ScrollArea>
 
-      <div className="p-3 sm:p-4 border-t border-border">
+      <div className="p-3 sm:p-4 border-t border-border space-y-2">
+        {onGenerateRequest && (
+          <div className="flex gap-2">
+            <Button
+              variant={mode === 'edit' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMode('edit')}
+              className="flex-1"
+            >
+              Edit Image
+            </Button>
+            <Button
+              variant={mode === 'generate' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMode('generate')}
+              className="flex-1"
+            >
+              Generate Image
+            </Button>
+          </div>
+        )}
         <div className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your edit (e.g., make background white, enhance resolution...)"
+            placeholder={mode === 'generate' 
+              ? "Describe the image to generate..." 
+              : "Describe your edit (e.g., make background white, enhance resolution...)"}
             className="resize-none bg-background/50 border-input text-sm"
             rows={2}
           />
