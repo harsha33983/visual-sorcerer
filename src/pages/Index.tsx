@@ -81,7 +81,7 @@ const Index = () => {
   const handleImageUpload = (file: File, preview: string) => {
     setCurrentFile(file);
     setUploadedImage(preview);
-    // Don't clear editedImage - allow editing edited images
+    setEditedImage(null);
     setMessages([]);
   };
 
@@ -168,10 +168,7 @@ const Index = () => {
   };
 
   const handleEditRequest = async (message: string) => {
-    // Use edited image if available, otherwise original
-    const sourceImage = editedImage || uploadedImage;
-    
-    if (!sourceImage) {
+    if (!uploadedImage) {
       toast({
         title: "No image available",
         description: "Please upload an image first",
@@ -194,10 +191,10 @@ const Index = () => {
     setIsProcessing(true);
 
     try {
-      // Call the edge function with the source image and instruction
+      // Call the edge function with the image and instruction
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: {
-          imageData: sourceImage,
+          imageData: uploadedImage,
           instruction: message
         }
       });
@@ -211,7 +208,7 @@ const Index = () => {
         await supabase.from('edit_history').insert({
           user_id: session.user.id,
           prompt: message,
-          image_url: uploadedImage || sourceImage,
+          image_url: uploadedImage,
           edited_image_url: data.editedImage
         });
 
@@ -281,14 +278,14 @@ const Index = () => {
 
       if (data?.generatedImage) {
         setUploadedImage(data.generatedImage);
-        setEditedImage(null);
+        setEditedImage(data.generatedImage);
         
-        // Save to history with generated image in BOTH fields so it appears in gallery
+        // Save to history - store generated image properly
         await supabase.from('edit_history').insert({
           user_id: session.user.id,
           prompt: message,
           image_url: data.generatedImage,
-          edited_image_url: data.generatedImage  // Store in edited field too for gallery
+          edited_image_url: data.generatedImage
         });
 
         const assistantMsg: Message = {
