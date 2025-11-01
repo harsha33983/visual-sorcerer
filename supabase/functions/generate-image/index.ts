@@ -1,8 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Input validation
+const validatePrompt = (prompt: unknown) => {
+  const errors: string[] = [];
+  
+  if (typeof prompt !== 'string') {
+    errors.push('prompt must be a string');
+  } else {
+    const trimmed = prompt.trim();
+    if (trimmed.length < 3) {
+      errors.push('prompt must be at least 3 characters');
+    } else if (trimmed.length > 1000) {
+      errors.push('prompt must be less than 1000 characters');
+    }
+  }
+  
+  return errors;
 };
 
 serve(async (req) => {
@@ -12,16 +31,48 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
-
-    if (!prompt) {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Missing prompt' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ error: 'Unauthorized - Missing authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Generating image with prompt:', prompt);
+    // Verify the JWT token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    const { prompt } = await req.json();
+
+    // Validate input
+    const validationErrors = validatePrompt(prompt);
+    if (validationErrors.length > 0) {
+      console.error('Validation errors:', validationErrors);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: validationErrors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Generating image for user:', user.id);
 
     // Get the Lovable API key from environment variables
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -77,7 +128,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('AI Gateway response received');
+    console.log('AI Gateway response received for user:', user.id);
 
     // Extract the generated image from the response
     const generatedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
@@ -90,7 +141,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Image generated successfully');
+    console.log('Image generated successfully for user:', user.id);
 
     return new Response(
       JSON.stringify({ generatedImage: generatedImageUrl }),

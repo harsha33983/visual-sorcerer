@@ -1,8 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Input validation schema
+const validateInput = (imageData: unknown, instruction: unknown) => {
+  const errors: string[] = [];
+  
+  // Validate imageData
+  if (typeof imageData !== 'string') {
+    errors.push('imageData must be a string');
+  } else if (imageData.length === 0) {
+    errors.push('imageData cannot be empty');
+  } else if (imageData.length > 10_000_000) {
+    errors.push('imageData too large (max 10MB)');
+  } else if (!imageData.match(/^data:image\/(png|jpeg|jpg|webp);base64,/)) {
+    errors.push('imageData must be a valid base64 image (png, jpeg, jpg, or webp)');
+  }
+  
+  // Validate instruction
+  if (typeof instruction !== 'string') {
+    errors.push('instruction must be a string');
+  } else {
+    const trimmed = instruction.trim();
+    if (trimmed.length < 3) {
+      errors.push('instruction must be at least 3 characters');
+    } else if (trimmed.length > 2000) {
+      errors.push('instruction must be less than 2000 characters');
+    }
+  }
+  
+  return errors;
 };
 
 serve(async (req) => {
@@ -11,12 +42,44 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData, instruction } = await req.json();
-    console.log('Received edit request:', { instruction });
-
-    if (!imageData || !instruction) {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Missing imageData or instruction' }),
+        JSON.stringify({ error: 'Unauthorized - Missing authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the JWT token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    const { imageData, instruction } = await req.json();
+    console.log('Received edit request from user:', user.id);
+
+    // Validate input
+    const validationErrors = validateInput(imageData, instruction);
+    if (validationErrors.length > 0) {
+      console.error('Validation errors:', validationErrors);
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: validationErrors }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -78,7 +141,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('AI response received');
+    console.log('AI response received for user:', user.id);
 
     // Extract the generated image
     const editedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
