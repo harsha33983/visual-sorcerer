@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import logo from '@/assets/logo.png';
 
 interface WelcomeAnimationProps {
   onComplete: () => void;
@@ -23,6 +24,9 @@ export const WelcomeAnimation = ({ onComplete }: WelcomeAnimationProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background animate-fade-out">
       <div className="text-center space-y-6 animate-scale-in">
+        <div className="flex justify-center mb-8 animate-fade-in">
+          <img src={logo} alt="Photo Editor Logo" className="w-24 h-24 sm:w-32 sm:h-32 object-contain" />
+        </div>
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-primary opacity-20 blur-3xl animate-pulse"></div>
           <h1 className="relative text-4xl sm:text-6xl font-bold bg-gradient-primary bg-clip-text text-transparent">
