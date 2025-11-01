@@ -191,11 +191,21 @@ const Index = () => {
     setIsProcessing(true);
 
     try {
+      // Get the current session to ensure we have a fresh token
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        throw new Error('No active session');
+      }
+
       // Call the edge function with the image and instruction
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: {
           imageData: uploadedImage,
           instruction: message
+        },
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
@@ -267,10 +277,20 @@ const Index = () => {
     setIsProcessing(true);
 
     try {
+      // Get the current session to ensure we have a fresh token
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        throw new Error('No active session');
+      }
+
       // Call the edge function to generate image
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
           prompt: message
+        },
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
