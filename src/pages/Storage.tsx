@@ -71,7 +71,7 @@ const Storage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pt-24">
         {images.length === 0 ? (
           <Card className="bg-card/80 backdrop-blur-sm border-border p-12 text-center">
             <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
