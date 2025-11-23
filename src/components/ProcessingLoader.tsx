@@ -1,41 +1,9 @@
-import { useEffect, useState } from 'react';
-
 interface ProcessingLoaderProps {
   isProcessing: boolean;
 }
 
 export const ProcessingLoader = ({ isProcessing }: ProcessingLoaderProps) => {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    if (!isProcessing) {
-      setProgress(0);
-      return;
-    }
-
-    // Simulate progress from 0 to 95% (last 5% waits for actual completion)
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return prev;
-        // Slower progress as we get closer to 95%
-        const increment = prev < 30 ? 5 : prev < 60 ? 3 : prev < 80 ? 2 : 1;
-        return Math.min(prev + increment, 95);
-      });
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, [isProcessing]);
-
-  useEffect(() => {
-    // Complete to 100% when processing finishes
-    if (!isProcessing && progress > 0) {
-      setProgress(100);
-      const timeout = setTimeout(() => setProgress(0), 500);
-      return () => clearTimeout(timeout);
-    }
-  }, [isProcessing, progress]);
-
-  if (!isProcessing && progress === 0) {
+  if (!isProcessing) {
     return null;
   }
 
@@ -47,9 +15,9 @@ export const ProcessingLoader = ({ isProcessing }: ProcessingLoaderProps) => {
             {/* Animated gradient ring */}
             <div className="absolute inset-0 bg-gradient-primary opacity-20 blur-2xl animate-pulse"></div>
             
-            {/* Progress circle */}
+            {/* Spinning circle */}
             <div className="relative w-32 h-32 mx-auto">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <svg className="w-full h-full animate-spin" viewBox="0 0 100 100">
                 {/* Background circle */}
                 <circle
                   cx="50"
@@ -60,7 +28,7 @@ export const ProcessingLoader = ({ isProcessing }: ProcessingLoaderProps) => {
                   strokeWidth="8"
                   className="text-muted/20"
                 />
-                {/* Progress circle */}
+                {/* Spinning arc */}
                 <circle
                   cx="50"
                   cy="50"
@@ -69,8 +37,7 @@ export const ProcessingLoader = ({ isProcessing }: ProcessingLoaderProps) => {
                   stroke="url(#gradient)"
                   strokeWidth="8"
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 45}`}
-                  strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress / 100)}`}
+                  strokeDasharray="70 212"
                   className="transition-all duration-300 ease-out"
                 />
                 <defs>
@@ -80,13 +47,6 @@ export const ProcessingLoader = ({ isProcessing }: ProcessingLoaderProps) => {
                   </linearGradient>
                 </defs>
               </svg>
-              
-              {/* Percentage text */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {Math.round(progress)}%
-                </span>
-              </div>
             </div>
           </div>
 

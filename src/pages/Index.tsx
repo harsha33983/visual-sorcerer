@@ -8,6 +8,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserProfile } from '@/components/UserProfile';
 import { WelcomeAnimation } from '@/components/WelcomeAnimation';
 import { ProcessingLoader } from '@/components/ProcessingLoader';
+import { ImagePreviewDialog } from '@/components/ImagePreviewDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -27,6 +28,9 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'edit' | 'generate'>('edit');
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -212,29 +216,16 @@ const Index = () => {
       if (error) throw error;
 
       if (data?.editedImage) {
-        setEditedImage(data.editedImage);
-        
-        // Save to history
-        await supabase.from('edit_history').insert({
-          user_id: session.user.id,
-          prompt: message,
-          image_url: uploadedImage,
-          edited_image_url: data.editedImage
-        });
+        // Show preview dialog instead of directly setting the image
+        setPreviewImage(data.editedImage);
+        setPreviewType('edit');
+        setShowPreview(true);
 
         const assistantMsg: Message = {
           role: 'assistant',
           content: `✓ Image edited: "${message}"`,
         };
         setMessages((prev) => [...prev, assistantMsg]);
-
-        toast({
-          title: "Image edited successfully",
-          description: "Your edited image is ready!",
-        });
-
-        // Trigger refresh of history
-        window.dispatchEvent(new Event('edit-history-updated'));
       }
     } catch (error: any) {
       console.error('Error editing image:', error);
@@ -297,27 +288,16 @@ const Index = () => {
       if (error) throw error;
 
       if (data?.generatedImage) {
-        setUploadedImage(data.generatedImage);
-        setEditedImage(data.generatedImage);
-        
-        // Save to history - store generated image properly
-        await supabase.from('edit_history').insert({
-          user_id: session.user.id,
-          prompt: message,
-          image_url: data.generatedImage,
-          edited_image_url: data.generatedImage
-        });
+        // Show preview dialog instead of directly setting the image
+        setPreviewImage(data.generatedImage);
+        setPreviewType('generate');
+        setShowPreview(true);
 
         const assistantMsg: Message = {
           role: 'assistant',
           content: `✓ Image generated: "${message}"`,
         };
         setMessages((prev) => [...prev, assistantMsg]);
-
-        toast({
-          title: "Image generated successfully",
-          description: "Your generated image is ready!",
-        });
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
@@ -345,10 +325,70 @@ const Index = () => {
     }
   };
 
+  const handleAcceptPreview = async () => {
+    if (!previewImage || !session?.user) return;
+
+    if (previewType === 'edit') {
+      setEditedImage(previewImage);
+      
+      // Save to history
+      await supabase.from('edit_history').insert({
+        user_id: session.user.id,
+        prompt: messages[messages.length - 2]?.content || '',
+        image_url: uploadedImage,
+        edited_image_url: previewImage
+      });
+
+      toast({
+        title: "Image accepted",
+        description: "Your edited image has been saved!",
+      });
+    } else {
+      setUploadedImage(previewImage);
+      setEditedImage(previewImage);
+      
+      // Save to history
+      await supabase.from('edit_history').insert({
+        user_id: session.user.id,
+        prompt: messages[messages.length - 2]?.content || '',
+        image_url: previewImage,
+        edited_image_url: previewImage
+      });
+
+      toast({
+        title: "Image accepted",
+        description: "Your generated image has been saved!",
+      });
+    }
+
+    // Trigger refresh of history
+    window.dispatchEvent(new Event('edit-history-updated'));
+    
+    setShowPreview(false);
+    setPreviewImage(null);
+  };
+
+  const handleDiscardPreview = () => {
+    setShowPreview(false);
+    setPreviewImage(null);
+    
+    toast({
+      title: "Image discarded",
+      description: "You can try generating or editing again",
+    });
+  };
+
   return (
     <>
       {showWelcome && <WelcomeAnimation onComplete={() => setShowWelcome(false)} />}
       <ProcessingLoader isProcessing={isProcessing} />
+      <ImagePreviewDialog
+        isOpen={showPreview}
+        onClose={handleDiscardPreview}
+        onAccept={handleAcceptPreview}
+        image={previewImage}
+        title={previewType === 'edit' ? 'Edited Image Preview' : 'Generated Image Preview'}
+      />
       <div className="min-h-screen bg-background flex flex-col">
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4 sm:py-6">
