@@ -1,4 +1,4 @@
-import { Home, History, Images, BookOpen, User, LogOut, Menu, X, Sparkles } from "lucide-react";
+import { Home, History, Images, BookOpen, User, LogOut, Menu, X } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
@@ -43,7 +43,6 @@ export function TopNavbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Sparkles className="w-8 h-8 text-primary" />
             <img src={logo} alt="PIXARIS" className="w-10 h-10" />
             <div className="hidden sm:block">
               <h2 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
@@ -90,7 +89,6 @@ export function TopNavbar() {
             <SheetContent side="right" className="w-64">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-3">
-                  <Sparkles className="w-6 h-6 text-primary" />
                   <img src={logo} alt="PIXARIS" className="w-8 h-8" />
                   <div>
                     <div className="font-bold bg-gradient-primary bg-clip-text text-transparent">
