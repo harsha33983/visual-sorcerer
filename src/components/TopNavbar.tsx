@@ -1,7 +1,6 @@
 import { Home, History, Images, BookOpen, User, LogOut, Menu, X } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import {
@@ -42,9 +41,8 @@ export function TopNavbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={logo} alt="PIXARIS" className="w-10 h-10" />
-            <div className="hidden sm:block">
+          <NavLink to="/" className="flex items-center hover:opacity-80 transition-opacity">
+            <div>
               <h2 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
                 PIXARIS
               </h2>
@@ -88,15 +86,12 @@ export function TopNavbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-64">
               <SheetHeader>
-                <SheetTitle className="flex items-center gap-3">
-                  <img src={logo} alt="PIXARIS" className="w-8 h-8" />
-                  <div>
-                    <div className="font-bold bg-gradient-primary bg-clip-text text-transparent">
-                      PIXARIS
-                    </div>
-                    <div className="text-xs text-muted-foreground font-normal">
-                      Craft Your Vision
-                    </div>
+                <SheetTitle>
+                  <div className="font-bold bg-gradient-primary bg-clip-text text-transparent">
+                    PIXARIS
+                  </div>
+                  <div className="text-xs text-muted-foreground font-normal">
+                    Craft Your Vision
                   </div>
                 </SheetTitle>
               </SheetHeader>
