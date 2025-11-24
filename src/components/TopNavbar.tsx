@@ -43,7 +43,7 @@ export function TopNavbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={logo} alt="PIXARIS" className="w-10 h-10" />
+            <img src={`${logo}?v=${Date.now()}`} alt="PIXARIS" className="w-10 h-10" />
             <div className="hidden sm:block">
               <h2 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
                 PIXARIS
@@ -89,7 +89,7 @@ export function TopNavbar() {
             <SheetContent side="right" className="w-64">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-3">
-                  <img src={logo} alt="PIXARIS" className="w-8 h-8" />
+                  <img src={`${logo}?v=${Date.now()}`} alt="PIXARIS" className="w-8 h-8" />
                   <div>
                     <div className="font-bold bg-gradient-primary bg-clip-text text-transparent">
                       PIXARIS
