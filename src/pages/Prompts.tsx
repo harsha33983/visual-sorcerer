@@ -4,9 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Star, Search, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useFavorites } from '@/hooks/use-favorites';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PromptCard {
   category: string;
@@ -333,6 +336,8 @@ const Prompts = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -364,83 +369,210 @@ const Prompts = () => {
     }));
   };
 
+  // Get all favorite prompts
+  const favoritePrompts = predefinedPrompts.flatMap(category =>
+    category.prompts.filter(prompt => isFavorite(prompt.title)).map(prompt => ({
+      ...prompt,
+      category: category.category,
+      icon: category.icon
+    }))
+  );
+
+  // Filter prompts by search
+  const filterPrompts = (prompts: PromptCard[]) => {
+    if (!searchQuery.trim()) return prompts;
+    const query = searchQuery.toLowerCase();
+    return prompts.map(category => ({
+      ...category,
+      prompts: category.prompts.filter(
+        p => p.title.toLowerCase().includes(query) || p.prompt.toLowerCase().includes(query)
+      )
+    })).filter(category => category.prompts.length > 0);
+  };
+
+  const filteredPrompts = filterPrompts(predefinedPrompts);
+
   if (!session) {
     return null;
   }
 
+  const PromptButton = ({ prompt, showCategory = false, categoryIcon = '' }: { 
+    prompt: { title: string; prompt: string; category?: string }; 
+    showCategory?: boolean;
+    categoryIcon?: string;
+  }) => (
+    <div className="relative group">
+      <Button
+        variant="outline"
+        className="w-full justify-start text-left h-auto py-3 px-4 pr-10 hover:bg-primary/10 hover:border-primary/50 transition-colors text-sm"
+        onClick={() => handlePromptClick(prompt.prompt)}
+      >
+        <div className="flex flex-col gap-1 w-full min-w-0">
+          {showCategory && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span>{categoryIcon}</span>
+              {prompt.category}
+            </span>
+          )}
+          <span className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+            {prompt.title}
+          </span>
+          <span className="text-xs text-muted-foreground line-clamp-2">
+            {prompt.prompt.slice(0, 80)}...
+          </span>
+        </div>
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 opacity-60 hover:opacity-100"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleFavorite(prompt.title);
+        }}
+      >
+        <Star
+          className={`h-4 w-4 transition-colors ${
+            isFavorite(prompt.title)
+              ? 'fill-primary text-primary'
+              : 'text-muted-foreground hover:text-primary'
+          }`}
+        />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 container mx-auto px-4 py-6 sm:py-8">
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Click any prompt to select it and return to the editor
-            </p>
+          {/* Header */}
+          <div className="flex flex-col gap-4 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
+              <p className="text-muted-foreground text-xs sm:text-sm">
+                Tap any prompt to use it in the editor
+              </p>
+            </div>
+            
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search prompts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-10 sm:h-11 text-sm"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pr-4">
-              {predefinedPrompts.map((category, idx) => (
-                <Card
-                  key={idx}
-                  className="bg-card/80 backdrop-blur-sm border-border hover:shadow-card transition-shadow"
-                >
-                  <Collapsible
-                    open={openCategories[category.category] ?? true}
-                    onOpenChange={() => toggleCategory(category.category)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="pb-3 cursor-pointer hover:bg-secondary/30 transition-colors rounded-t-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{category.icon}</span>
-                            <CardTitle className="text-lg">{category.category}</CardTitle>
-                          </div>
-                          {openCategories[category.category] ?? true ? (
-                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </div>
-                        <CardDescription className="text-xs">
-                          {category.prompts.length} prompts available
-                        </CardDescription>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {category.prompts.map((prompt, pIdx) => (
-                            <Button
-                              key={pIdx}
-                              variant="outline"
-                              className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-colors text-sm group"
-                              onClick={() => handlePromptClick(prompt.prompt)}
-                            >
-                              <div className="flex flex-col gap-1 w-full">
-                                <span className="font-medium text-foreground group-hover:text-primary transition-colors">
-                                  {prompt.title}
-                                </span>
-                                <span className="text-xs text-muted-foreground line-clamp-2">
-                                  {prompt.prompt.slice(0, 100)}...
-                                </span>
+          {/* Tabs */}
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="w-full grid grid-cols-2 mb-4 h-10 sm:h-11">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">
+                All Prompts
+              </TabsTrigger>
+              <TabsTrigger value="favorites" className="text-xs sm:text-sm">
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+                Favorites ({favorites.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* All Prompts Tab */}
+            <TabsContent value="all" className="mt-0">
+              <ScrollArea className="h-[calc(100vh-280px)] sm:h-[calc(100vh-260px)]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pr-2 sm:pr-4">
+                  {filteredPrompts.map((category, idx) => (
+                    <Card
+                      key={idx}
+                      className="bg-card/80 backdrop-blur-sm border-border hover:shadow-card transition-shadow"
+                    >
+                      <Collapsible
+                        open={openCategories[category.category] ?? true}
+                        onOpenChange={() => toggleCategory(category.category)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="pb-2 sm:pb-3 cursor-pointer hover:bg-secondary/30 transition-colors rounded-t-lg p-3 sm:p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-xl sm:text-2xl flex-shrink-0">{category.icon}</span>
+                                <CardTitle className="text-sm sm:text-base truncate">{category.category}</CardTitle>
                               </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
+                              {openCategories[category.category] ?? true ? (
+                                <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                            </div>
+                            <CardDescription className="text-xs">
+                              {category.prompts.length} prompts
+                            </CardDescription>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="p-2 sm:p-3 pt-0">
+                            <div className="space-y-2">
+                              {category.prompts.map((prompt, pIdx) => (
+                                <PromptButton key={pIdx} prompt={prompt} />
+                              ))}
+                            </div>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </Card>
+                  ))}
+                </div>
+                {filteredPrompts.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Search className="h-10 w-10 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground text-sm">No prompts found for "{searchQuery}"</p>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Favorites Tab */}
+            <TabsContent value="favorites" className="mt-0">
+              <ScrollArea className="h-[calc(100vh-280px)] sm:h-[calc(100vh-260px)]">
+                {favoritePrompts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pr-2 sm:pr-4">
+                    {favoritePrompts.map((prompt, idx) => (
+                      <PromptButton 
+                        key={idx} 
+                        prompt={prompt} 
+                        showCategory 
+                        categoryIcon={prompt.icon} 
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                    <Star className="h-10 w-10 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground text-sm mb-1">No favorites yet</p>
+                    <p className="text-muted-foreground text-xs">
+                      Tap the star icon on any prompt to add it here
+                    </p>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
-      <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-4 mt-8">
-        <div className="container mx-auto px-4 text-center text-xs sm:text-sm text-muted-foreground">
+      <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-3 sm:py-4 mt-auto">
+        <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
           <p>Developed by Harshavardhan • Powered by AI</p>
         </div>
       </footer>
