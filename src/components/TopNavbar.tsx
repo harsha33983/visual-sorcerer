@@ -1,4 +1,4 @@
-import { Home, History, Images, BookOpen, User, LogOut, Menu, X } from "lucide-react";
+import { Home, History, Images, BookOpen, User, LogOut, Menu } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home },
@@ -68,6 +69,7 @@ export function TopNavbar() {
                 </NavLink>
               );
             })}
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
@@ -116,13 +118,17 @@ export function TopNavbar() {
                     </NavLink>
                   );
                 })}
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                  <span className="text-sm text-muted-foreground">Theme</span>
+                  <ThemeToggle />
+                </div>
                 <Button
                   variant="ghost"
                   onClick={() => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10 mt-4"
+                  className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10 mt-2"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
