@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Trash2, Clock, AlertCircle, RefreshCw, MoreVertical, Pencil, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ImageSkeleton } from '@/components/ImageSkeleton';
 import { LazyImage } from '@/components/LazyImage';
@@ -30,20 +31,14 @@ const History = () => {
   const fetchHistory = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-
+      if (!user) { navigate('/auth'); return; }
       const { data, error: fetchError } = await supabase
         .from('edit_history')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
       if (fetchError) throw fetchError;
       setHistory(data || []);
     } catch (err: any) {
@@ -53,30 +48,41 @@ const History = () => {
     }
   };
 
-  const deleteHistoryItem = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    const { error } = await supabase
-      .from('edit_history')
-      .delete()
-      .eq('id', id);
-
+  const deleteHistoryItem = async (id: string) => {
+    const { error } = await supabase.from('edit_history').delete().eq('id', id);
     if (error) {
       toast({ title: "Error", description: "Failed to delete history item", variant: "destructive" });
       return;
     }
-
     setHistory(history.filter(item => item.id !== id));
     toast({ title: "Deleted", description: "History item removed" });
   };
 
-  const loadHistoryItem = (item: HistoryItem) => {
+  const editHistoryItem = (item: HistoryItem) => {
     localStorage.setItem('historyItem', JSON.stringify({
       prompt: item.prompt,
       imageUrl: item.image_url,
       editedImageUrl: item.edited_image_url
     }));
     navigate('/');
+  };
+
+  const downloadImage = async (imageUrl: string, prompt: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${prompt.substring(0, 30)}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({ title: "Downloaded", description: "Image saved to your device" });
+    } catch {
+      toast({ title: "Error", description: "Failed to download image", variant: "destructive" });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -86,7 +92,6 @@ const History = () => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
@@ -117,9 +122,8 @@ const History = () => {
             {history.map((item, i) => (
               <Card
                 key={item.id}
-                className="bg-card/80 backdrop-blur-sm border-border cursor-pointer hover:shadow-lg transition-all group animate-fade-in"
+                className="bg-card/80 backdrop-blur-sm border-border hover:shadow-lg transition-all group animate-fade-in"
                 style={{ animationDelay: `${i * 0.05}s` }}
-                onClick={() => loadHistoryItem(item)}
               >
                 <CardContent className="p-4">
                   <div className="relative mb-3">
@@ -128,14 +132,29 @@ const History = () => {
                       alt="Edit preview"
                       className="w-full h-48 rounded-lg"
                     />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => deleteHistoryItem(item.id, e)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => editHistoryItem(item)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => downloadImage(item.edited_image_url || item.image_url, item.prompt)}>
+                          <Download className="w-4 h-4 mr-2" /> Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteHistoryItem(item.id)}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <p className="text-sm font-medium line-clamp-2 mb-2">{item.prompt}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>

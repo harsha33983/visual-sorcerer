@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Image as ImageIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, Image as ImageIcon, AlertCircle, RefreshCw, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ImageSkeleton } from '@/components/ImageSkeleton';
 import { LazyImage } from '@/components/LazyImage';
@@ -11,6 +12,7 @@ import { LazyImage } from '@/components/LazyImage';
 interface StorageItem {
   id: string;
   edited_image_url: string;
+  image_url: string | null;
   prompt: string;
   created_at: string;
 }
@@ -29,21 +31,15 @@ const Storage = () => {
   const fetchImages = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-
+      if (!user) { navigate('/auth'); return; }
       const { data, error: fetchError } = await supabase
         .from('edit_history')
-        .select('id, edited_image_url, prompt, created_at')
+        .select('id, edited_image_url, image_url, prompt, created_at')
         .eq('user_id', user.id)
         .not('edited_image_url', 'is', null)
         .order('created_at', { ascending: false });
-
       if (fetchError) throw fetchError;
       setImages(data || []);
     } catch (err: any) {
@@ -53,9 +49,26 @@ const Storage = () => {
     }
   };
 
-  const downloadImage = async (imageUrl: string, prompt: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const deleteImage = async (id: string) => {
+    const { error } = await supabase.from('edit_history').delete().eq('id', id);
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete image", variant: "destructive" });
+      return;
+    }
+    setImages(images.filter(item => item.id !== id));
+    toast({ title: "Deleted", description: "Image removed from gallery" });
+  };
 
+  const editImage = (item: StorageItem) => {
+    localStorage.setItem('historyItem', JSON.stringify({
+      prompt: item.prompt,
+      imageUrl: item.image_url,
+      editedImageUrl: item.edited_image_url
+    }));
+    navigate('/');
+  };
+
+  const downloadImage = async (imageUrl: string, prompt: string) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -67,7 +80,6 @@ const Storage = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
       toast({ title: "Downloaded", description: "Image saved to your device" });
     } catch {
       toast({ title: "Error", description: "Failed to download image", variant: "destructive" });
@@ -107,14 +119,28 @@ const Storage = () => {
                       alt={item.prompt}
                       className="w-full h-64"
                     />
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => downloadImage(item.edited_image_url, item.prompt, e)}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => editImage(item)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => downloadImage(item.edited_image_url, item.prompt)}>
+                          <Download className="w-4 h-4 mr-2" /> Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteImage(item.id)}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <div className="p-3">
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.prompt}</p>
