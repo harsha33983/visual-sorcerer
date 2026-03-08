@@ -43,7 +43,7 @@ export function TopNavbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <NavLink to="/editor" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={logo} alt="PIXARIS" className="w-10 h-10" />
             <div className="hidden sm:block">
               <h2 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
