@@ -336,10 +336,13 @@ const predefinedPrompts: PromptCard[] = [
 
 const Prompts = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const [previewPrompt, setPreviewPrompt] = useState<{ title: string; prompt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
