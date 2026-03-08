@@ -597,6 +597,40 @@ const Prompts = () => {
         </div>
       </main>
 
+      {/* Prompt Preview Dialog */}
+      <Dialog open={!!previewPrompt} onOpenChange={(open) => !open && setPreviewPrompt(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{previewPrompt?.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh]">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {previewPrompt?.prompt}
+            </p>
+          </ScrollArea>
+          <DialogFooter className="flex-row gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => previewPrompt && handleCopyPrompt(previewPrompt.prompt)}
+            >
+              {copied ? <Check className="h-4 w-4 mr-1.5" /> : <Copy className="h-4 w-4 mr-1.5" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (previewPrompt) handlePromptClick(previewPrompt.prompt);
+                setPreviewPrompt(null);
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Use Prompt
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-3 sm:py-4 mt-auto">
         <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
           <p>Developed by Harshavardhan • Powered by AI</p>
