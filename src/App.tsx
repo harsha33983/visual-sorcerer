@@ -23,7 +23,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="*" element={
             <ProtectedRoute>
@@ -31,7 +31,7 @@ const App = () => (
                 <TopNavbar />
                 <main className="w-full">
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/editor" element={<Index />} />
                     <Route path="/prompts" element={<Prompts />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/history" element={<History />} />
