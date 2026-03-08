@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Trash2, Clock } from 'lucide-react';
+import { Trash2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ImageSkeleton } from '@/components/ImageSkeleton';
+import { LazyImage } from '@/components/LazyImage';
 
 interface HistoryItem {
   id: string;
@@ -18,51 +20,54 @@ const History = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
   }, []);
 
   const fetchHistory = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+    setLoading(true);
+    setError(null);
 
-    const { data } = await supabase
-      .from('edit_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
 
-    if (data) {
-      setHistory(data);
+      const { data, error: fetchError } = await supabase
+        .from('edit_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setHistory(data || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load history');
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteHistoryItem = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const { error } = await supabase
       .from('edit_history')
       .delete()
       .eq('id', id);
 
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete history item",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete history item", variant: "destructive" });
       return;
     }
 
     setHistory(history.filter(item => item.id !== id));
-    toast({
-      title: "Deleted",
-      description: "History item removed",
-    });
+    toast({ title: "Deleted", description: "History item removed" });
   };
 
   const loadHistoryItem = (item: HistoryItem) => {
@@ -92,25 +97,36 @@ const History = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-6 pt-24">
-        {history.length === 0 ? (
+        {loading ? (
+          <ImageSkeleton count={6} />
+        ) : error ? (
+          <Card className="bg-card/80 backdrop-blur-sm border-border p-12 text-center">
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button variant="outline" onClick={fetchHistory}>
+              <RefreshCw className="w-4 h-4 mr-2" /> Retry
+            </Button>
+          </Card>
+        ) : history.length === 0 ? (
           <Card className="bg-card/80 backdrop-blur-sm border-border p-12 text-center">
             <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">No edit history yet</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {history.map((item) => (
+            {history.map((item, i) => (
               <Card
                 key={item.id}
-                className="bg-card/80 backdrop-blur-sm border-border cursor-pointer hover:shadow-lg transition-all group"
+                className="bg-card/80 backdrop-blur-sm border-border cursor-pointer hover:shadow-lg transition-all group animate-fade-in"
+                style={{ animationDelay: `${i * 0.05}s` }}
                 onClick={() => loadHistoryItem(item)}
               >
                 <CardContent className="p-4">
                   <div className="relative mb-3">
-                    <img
+                    <LazyImage
                       src={item.edited_image_url || item.image_url}
                       alt="Edit preview"
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-48 rounded-lg"
                     />
                     <Button
                       variant="destructive"
@@ -121,12 +137,8 @@ const History = () => {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-sm font-medium line-clamp-2 mb-2">
-                    {item.prompt}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(item.created_at)}
-                  </p>
+                  <p className="text-sm font-medium line-clamp-2 mb-2">{item.prompt}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
                 </CardContent>
               </Card>
             ))}
