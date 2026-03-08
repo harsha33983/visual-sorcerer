@@ -364,7 +364,7 @@ const Prompts = () => {
 
   const handlePromptClick = (prompt: string) => {
     localStorage.setItem('selectedPrompt', prompt);
-    navigate('/');
+    navigate('/editor');
   };
 
   const toggleCategory = (category: string) => {

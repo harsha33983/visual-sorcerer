@@ -64,7 +64,7 @@ const History = () => {
       imageUrl: item.image_url,
       editedImageUrl: item.edited_image_url
     }));
-    navigate('/');
+    navigate('/editor');
   };
 
   const downloadImage = async (imageUrl: string, prompt: string) => {
