@@ -4,12 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, ChevronDown, ChevronUp, Star, Search, X } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, Star, Search, X, Eye, Copy, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useFavorites } from '@/hooks/use-favorites';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface PromptCard {
   category: string;
@@ -334,10 +336,13 @@ const predefinedPrompts: PromptCard[] = [
 
 const Prompts = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const [previewPrompt, setPreviewPrompt] = useState<{ title: string; prompt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -396,6 +401,13 @@ const Prompts = () => {
     return null;
   }
 
+  const handleCopyPrompt = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Copied", description: "Prompt copied to clipboard" });
+  };
+
   const PromptButton = ({ prompt, showCategory = false, categoryIcon = '' }: { 
     prompt: { title: string; prompt: string; category?: string }; 
     showCategory?: boolean;
@@ -404,7 +416,7 @@ const Prompts = () => {
     <div className="relative group">
       <Button
         variant="outline"
-        className="w-full justify-start text-left h-auto py-3 px-4 pr-10 hover:bg-primary/10 hover:border-primary/50 transition-colors text-sm"
+        className="w-full justify-start text-left h-auto py-3 px-4 pr-20 hover:bg-primary/10 hover:border-primary/50 transition-colors text-sm"
         onClick={() => handlePromptClick(prompt.prompt)}
       >
         <div className="flex flex-col gap-1 w-full min-w-0">
@@ -422,23 +434,37 @@ const Prompts = () => {
           </span>
         </div>
       </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 opacity-60 hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleFavorite(prompt.title);
-        }}
-      >
-        <Star
-          className={`h-4 w-4 transition-colors ${
-            isFavorite(prompt.title)
-              ? 'fill-primary text-primary'
-              : 'text-muted-foreground hover:text-primary'
-          }`}
-        />
-      </Button>
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPreviewPrompt(prompt);
+          }}
+          title="Preview prompt"
+        >
+          <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 opacity-60 hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFavorite(prompt.title);
+          }}
+        >
+          <Star
+            className={`h-4 w-4 transition-colors ${
+              isFavorite(prompt.title)
+                ? 'fill-primary text-primary'
+                : 'text-muted-foreground hover:text-primary'
+            }`}
+          />
+        </Button>
+      </div>
     </div>
   );
 
@@ -570,6 +596,40 @@ const Prompts = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Prompt Preview Dialog */}
+      <Dialog open={!!previewPrompt} onOpenChange={(open) => !open && setPreviewPrompt(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{previewPrompt?.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh]">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {previewPrompt?.prompt}
+            </p>
+          </ScrollArea>
+          <DialogFooter className="flex-row gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => previewPrompt && handleCopyPrompt(previewPrompt.prompt)}
+            >
+              {copied ? <Check className="h-4 w-4 mr-1.5" /> : <Copy className="h-4 w-4 mr-1.5" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (previewPrompt) handlePromptClick(previewPrompt.prompt);
+                setPreviewPrompt(null);
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-1.5" />
+              Use Prompt
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <footer className="border-t border-border bg-card/30 backdrop-blur-sm py-3 sm:py-4 mt-auto">
         <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
