@@ -33,21 +33,16 @@ const Index = () => {
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setSession(session);
     });
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) {
-        navigate('/auth');
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     // Check for selected prompt from prompts page
